@@ -1,13 +1,14 @@
 // -*- tab-width:2; indent-tabs-mode:t -*- vim: set noet ts=2:
 (function(){
 
-	var edit_msg = {};
+	var edit_msg = null;
 
 	function menuClicked(info, tab) {
 		if (edit_msg) {
 			var tab_port = chrome.tabs.connect(tab.id);
 			tab_port.tab = tab;
 			handleContentMessages(edit_msg, tab_port);
+			edit_msg = null;
 		}
 	}
 
