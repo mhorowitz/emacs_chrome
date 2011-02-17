@@ -272,33 +272,33 @@ If `edit-server-verbose' is non-nil, then STRING is also echoed to the message l
 						(setq edit-server-phase 'head))))
 		
 			(when (eq edit-server-phase 'head)
-				;; look for "Content-length" header
-				(save-excursion
-					(goto-char (point-min))
-					(when (re-search-forward "^Content-Length:\\s-+\\([0-9]+\\)" nil t)
-						(setq edit-server-content-length
-									(string-to-number (match-string 1)))))
-				;; look for "x-url" header
-				(save-excursion
-					(goto-char (point-min))
-					(when (re-search-forward "^x-url: .*//\\(.*\\)/" nil t)
-						(setq edit-server-url (match-string 1))))
-				;; look for "x-file" header
-				(save-excursion
-					(goto-char (point-min))
-					(when (re-search-forward "^x-file: \\([^\r\n]*\\)" nil t)
-						(setq incremental-buffer-name (match-string 1))))
 				;; look for head/body separator
 				(save-excursion
 					(goto-char (point-min))
 					(when (re-search-forward "\\(\r?\n\\)\\{2\\}" nil t)
-						;; HTTP headers are pure ASCII (1 char = 1 byte), so we can subtract
-						;; the buffer position from the count of received bytes
-						(setq edit-server-received
-									(- edit-server-received (- (match-end 0) (point-min))))
-						;; discard headers - keep only HTTP content in buffer
-						(delete-region (point-min) (match-end 0))
-						(setq edit-server-phase 'body))))
+						(let ((eoh (match-end 0)))
+							;; look for "Content-length" header
+							(goto-char (point-min))
+							(when (re-search-forward "^Content-Length:\\s-+\\([0-9]+\\)"
+																			 nil t)
+								(setq edit-server-content-length
+											(string-to-number (match-string 1))))
+							;; look for "x-url" header
+							(goto-char (point-min))
+							(when (re-search-forward "^x-url: .*//\\(.*\\)/" nil t)
+								(setq edit-server-url (match-string 1)))
+							;; look for "x-file" header
+							(goto-char (point-min))
+							(when (re-search-forward "^x-file: \\([^\r\n]*\\)" nil t)
+								(setq incremental-buffer-name (match-string 1)))
+							;; HTTP headers are pure ASCII (1 char = 1 byte), so we
+							;; can subtract the buffer position from the count of
+							;; received bytes
+							(setq edit-server-received
+										(- edit-server-received (- eoh (point-min))))
+							;; discard headers - keep only HTTP content in buffer
+							(delete-region (point-min) eoh)
+							(setq edit-server-phase 'body)))))
 		
 			(when (eq edit-server-phase 'body)
 				(if (and edit-server-content-length
@@ -454,7 +454,8 @@ and its buffer are killed with `edit-server-kill-client'."
 					(format-encode-region (point-min) (point-max) format))
 				;; send back
 				(run-hooks hooks)
-				(edit-server-send-response proc t nil (buffer-name buffer))))))
+				(edit-server-send-response proc t nil
+																	 (and incremental (buffer-name buffer)))))))
 
 (defun edit-server-save ()
 	"Save edits: send HTTP response back, but keep the buffer open
