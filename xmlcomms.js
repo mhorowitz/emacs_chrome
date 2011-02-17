@@ -116,7 +116,9 @@ function handleContentMessages(msg, tab_port)
 	xhr.setRequestHeader("Content-type", "text/plain");
 	xhr.setRequestHeader("x-url", tab_port.tab.url);
 	xhr.setRequestHeader("x-id", id);
-	xhr.setRequestHeader("x-file", file);
+	if (file) {
+		xhr.setRequestHeader("x-file", file);
+	}
 	xhr.send(text);
 }
 
