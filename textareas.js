@@ -16,6 +16,7 @@ var port = chrome.extension.connect();
 var page_edit_id = 0;
 var pageTextAreas = [];
 var findingTextAreas = false;
+var animating = false;
 
 // via options
 var enable_button = true;
@@ -171,16 +172,20 @@ function updateTextArea(id, content) {
 	var tracker = getTextAreaTracker(id);
 	if (tracker) {
 		tracker.text.value = content;
-		orig = $(tracker.text).css('background-color');
-		$(tracker.text).css({'background-color': 'yellow'});
 		// mark node as changed
 		var event = document.createEvent("HTMLEvents");
 		event.initEvent('change', true, false);
 		tracker.text.dispatchEvent(event);
 
-		setTimeout(function(){
-				$(tracker.text).animate({ 'background-color': orig }, 1000);
+		if (!animating) {
+			animating = true;
+			orig = $(tracker.text).css('background-color');
+			$(tracker.text).css({'background-color': 'yellow'});
+			setTimeout(function(){
+				$(tracker.text).animate({ 'background-color': orig }, 1000, null,
+																function(){ animating = false; });
 			}, 1000);
+		}
 	}
 }
 
